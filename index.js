@@ -15,6 +15,7 @@ let listening = false;
 let channelName;
 let subscription;
 let queue = [];
+let playing = false;
 
 (async () => {
   // register slash commands
@@ -38,7 +39,13 @@ let queue = [];
     const resource = queue.shift();
     if (resource) {
       player.play(resource);
+      return;
     }
+    playing = false;
+  });
+
+  player.on(AudioPlayerStatus.Playing, () => {
+    playing = true;
   });
 
   client.on(Events.InteractionCreate, async interaction => {
@@ -69,7 +76,7 @@ let queue = [];
         return;
       }
 
-      let connection = getVoiceConnection();
+      let connection = getVoiceConnection(interaction.guildId);
       if (!connection) {
         await interaction.reply('tts is not enabled');
         return;
@@ -79,6 +86,7 @@ let queue = [];
       subscription.unsubscribe();
       connection.destroy();
       listening = false;
+      playing = false;
       channelName = null;
 
       interaction.reply('left the channel and stopped listening to #no-mic');
@@ -89,15 +97,35 @@ let queue = [];
     if (!message.guildId) return;
     if (!listening) return;
     if (message.channel.name !== 'no-mic') return;
+    if (!message.member.voice.channel) return;
     if (message.member.voice.channel.name !== channelName) return;
+    if (message.member.id === config.clientId) return;
+    if (message.content.length > 1000) {
+      await message.reply('that message is too long');
+      return;
+    }
+    if (!message.member.voice.selfMute) return;
 
     const username = message.member.user.username.split('#')[0];
-    const text = `${username} said ${message.content}`;
-    console.log(text);
+    const contentWithReadableEmojis = message.content.replace(
+      /<:(.+?):\d+>/,
+      '$1'
+    );
+    const contentWithNoUrls = contentWithReadableEmojis.replace(
+      /[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?/,
+      ''
+    );
+
+    if (!contentWithNoUrls) return;
+
+    const text = `${username} said ${contentWithNoUrls}`;
     try {
       const resource = await synthesize(text);
-      player.play(resource);
-      // queue.push(resource);
+      if (!playing) {
+        player.play(resource);
+      } else {
+        queue.push(resource);
+      }
     } catch (e) {
       console.error('There was an error: ', e);
     }

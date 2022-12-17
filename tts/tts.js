@@ -7,7 +7,7 @@ const client = new textToSpeech.TextToSpeechClient();
 export const synthesize = async text => {
   const request = {
     input: { text },
-    voice: { languageCode: 'en-US', ssmlGender: 'FEMALE' },
+    voice: { languageCode: 'en-UK', ssmlGender: 'FEMALE' },
     audioConfig: { audioEncoding: 'MP3' },
   };
 

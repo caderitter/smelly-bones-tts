@@ -50,6 +50,7 @@ let playing = false;
 
   client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isChatInputCommand()) return;
+    if (interaction.channel.name !== 'no-mic') return;
     if (interaction.commandName === 'starttts') {
       if (!interaction.member.voice.channel) {
         await interaction.reply('You must be in a voice channel');
@@ -100,7 +101,7 @@ let playing = false;
     if (!message.member.voice.channel) return;
     if (message.member.voice.channel.name !== channelName) return;
     if (message.member.id === config.clientId) return;
-    if (message.content.length > 1000) {
+    if (message.content.length > 100) {
       await message.reply('that message is too long');
       return;
     }

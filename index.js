@@ -16,6 +16,7 @@ let channelName;
 let subscription;
 let queue = [];
 let playing = false;
+let timeout;
 
 (async () => {
   // register slash commands
@@ -83,13 +84,7 @@ let playing = false;
         return;
       }
 
-      player.stop();
-      subscription.unsubscribe();
-      connection.destroy();
-      listening = false;
-      playing = false;
-      channelName = null;
-
+      stopTts();
       interaction.reply('left the channel and stopped listening to #no-mic');
     }
   });
@@ -127,9 +122,21 @@ let playing = false;
       } else {
         queue.push(resource);
       }
+      timeout = setTimeout(() => stopTts(), 1000*60*15);
     } catch (e) {
       console.error('There was an error: ', e);
     }
+
+    const stopTts = () => {
+      player.stop();
+      subscription.unsubscribe();
+      connection.destroy();
+      listening = false;
+      playing = false;
+      channelName = null;
+      queue = [];
+      clearTimeout(timeout);
+    };
   });
 
   await client.login(config.token);

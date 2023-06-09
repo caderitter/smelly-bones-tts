@@ -1,28 +1,37 @@
-import { Client, Events, GatewayIntentBits } from 'discord.js';
+import {
+  ActionRowBuilder,
+  Client,
+  Events,
+  GatewayIntentBits,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+} from "discord.js";
 import {
   AudioPlayerStatus,
   createAudioPlayer,
   getVoiceConnection,
   joinVoiceChannel,
-} from '@discordjs/voice';
+} from "@discordjs/voice";
 
-import config from './config.json' assert { type: 'json' };
-import commands from './commands/commands.js';
-import registerCommands from './commands/registerCommands.js';
-import { synthesize } from './tts/tts.js';
+import config from "./config.json" assert { type: "json" };
+import commands from "./commands/commands.js";
+import registerCommands from "./commands/registerCommands.js";
+import { listVoices, synthesize } from "./tts/tts.js";
+import { ComponentType } from "discord.js";
 
 let listening = false;
 let channelName;
 let subscription;
 let queue = [];
 let playing = false;
+let selectedVoice = "en-US-News-N";
 
 (async () => {
   // register slash commands
   try {
     await registerCommands(commands);
   } catch (e) {
-    console.error('Error registering commands: ', e);
+    console.error("Error registering commands: ", e);
   }
 
   const client = new Client({
@@ -48,16 +57,17 @@ let playing = false;
     playing = true;
   });
 
-  client.on(Events.InteractionCreate, async interaction => {
+  client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
-    if (interaction.channel.name !== 'no-mic') return;
-    if (interaction.commandName === 'starttts') {
+    if (interaction.channel.name !== "no-mic") return;
+    if (interaction.commandName === "starttts") {
+      await interaction.deferReply();
       if (!interaction.member.voice.channel) {
-        await interaction.reply('You must be in a voice channel');
+        await interaction.editReply("You must be in a voice channel");
         return;
       }
 
-      let connection = getVoiceConnection();
+      let connection = getVoiceConnection(interaction.guildId);
       if (!connection) {
         connection = joinVoiceChannel({
           channelId: interaction.member.voice.channel.id,
@@ -68,18 +78,20 @@ let playing = false;
         listening = true;
         channelName = interaction.member.voice.channel.name;
       }
-      interaction.reply('joined your channel and started listening to #no-mic');
+      interaction.editReply(
+        "joined your channel and started listening to #no-mic"
+      );
     }
 
-    if (interaction.commandName === 'stoptts') {
+    if (interaction.commandName === "stoptts") {
       if (!interaction.member.voice.channel) {
-        await interaction.reply('You must be in a voice channel');
+        await interaction.reply("You must be in a voice channel");
         return;
       }
 
       let connection = getVoiceConnection(interaction.guildId);
       if (!connection) {
-        await interaction.reply('tts is not enabled');
+        await interaction.reply("tts is not enabled");
         return;
       }
 
@@ -89,49 +101,108 @@ let playing = false;
       listening = false;
       playing = false;
       channelName = null;
+      interaction.reply("left the channel and stopped listening to #no-mic");
+    }
 
-      interaction.reply('left the channel and stopped listening to #no-mic');
+    if (interaction.commandName === "setvoice") {
+      await interaction.deferReply();
+      let voices = [];
+      try {
+        voices = await listVoices();
+      } catch (e) {
+        await interaction.editReply({
+          content: "There was an error fetching voices: " + e,
+        });
+        return;
+      }
+
+      const rows = chunkArray(voices, 25).map((chunk, i) => {
+        const options = chunk.map((voice) =>
+          new StringSelectMenuOptionBuilder()
+            .setLabel(`${voice.name} - ${voice.ssmlGender}`)
+            .setValue(voice.name)
+        );
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId("voice select" + i)
+          .setPlaceholder("Select a voice...")
+          .addOptions(options);
+        return new ActionRowBuilder().addComponents(selectMenu);
+      });
+
+      const response = await interaction.editReply({
+        content: "Choose a voice from one of the lists",
+        components: [...rows],
+      });
+
+      const collectorFilter = (i) => i.user.id === interaction.user.id;
+
+      try {
+        const selection = await response.awaitMessageComponent({
+          filter: collectorFilter,
+          time: 60_000,
+          componentType: ComponentType.StringSelect,
+        });
+        selectedVoice = selection.values[0];
+        await selection.update({
+          content: `✅ Voice changed to ${selectedVoice}`,
+          components: [],
+        });
+      } catch (e) {
+        await interaction.editReply({
+          content: "Selection was not made within 1 minute, aborting",
+          components: [],
+        });
+      }
     }
   });
 
-  client.on(Events.MessageCreate, async message => {
+  client.on(Events.MessageCreate, async (message) => {
     if (!message.guildId) return;
     if (!listening) return;
-    if (message.channel.name !== 'no-mic') return;
+    if (message.channel.name !== "no-mic") return;
     if (!message.member.voice.channel) return;
     if (message.member.voice.channel.name !== channelName) return;
     if (message.member.id === config.clientId) return;
     if (message.content.length > 100) {
-      await message.reply('that message is too long');
+      await message.reply("that message is too long");
       return;
     }
     if (!message.member.voice.selfMute) return;
 
-    const username = message.member.user.username.split('#')[0];
+    const username = message.member.user.username.split("#")[0];
     const contentWithReadableEmojis = message.content.replace(
       /<:(.+?):\d+>/,
-      '$1'
+      "$1"
     );
     const contentWithNoUrls = contentWithReadableEmojis.replace(
       /[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?/,
-      ''
+      ""
     );
 
     if (!contentWithNoUrls) return;
 
     const text = `${username} said ${contentWithNoUrls}`;
     try {
-      const resource = await synthesize(text);
+      const resource = await synthesize(text, selectedVoice);
       if (!playing) {
         player.play(resource);
       } else {
         queue.push(resource);
       }
     } catch (e) {
-      console.error('There was an error: ', e);
+      console.error("There was an error: ", e);
     }
   });
 
   await client.login(config.token);
-  console.log('ready');
+  console.log("ready");
 })();
+
+function chunkArray(arr, chunkSize) {
+  const res = [];
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    const chunk = arr.slice(i, i + chunkSize);
+    res.push(chunk);
+  }
+  return res;
+}

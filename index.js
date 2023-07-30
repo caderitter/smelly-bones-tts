@@ -194,6 +194,7 @@ let selectedVoice = "en-US-News-N";
         [userMentionString]: date.toISOString(),
       };
       await writeFile("./birthdays.json", JSON.stringify(newBirthdaysObject));
+      await interaction.editReply(`✅ added ${userMentionString}'s birthday`);
     } catch (e) {
       await interaction.editReply("There was an error: " + e);
     }

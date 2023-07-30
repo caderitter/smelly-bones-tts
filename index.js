@@ -18,6 +18,8 @@ import commands from "./commands/commands.js";
 import registerCommands from "./commands/registerCommands.js";
 import { listVoices, synthesize } from "./tts/tts.js";
 import { ComponentType } from "discord.js";
+import { scheduleJob } from "node-schedule";
+import { readFile, writeFile } from "node:fs/promises";
 
 let listening = false;
 let channelName;
@@ -42,6 +44,21 @@ let selectedVoice = "en-US-News-N";
       GatewayIntentBits.MessageContent,
     ],
   });
+
+  scheduleJob("0 10 * * *", async () => {
+    const jsonString = await readFile("./birthays.json", {
+      encoding: "utf-8",
+    });
+    const birthdaysObject = JSON.parse(jsonString);
+    const todayWithoutTime = new Date().setHours(0, 0, 0, 0);
+    Object.entries(birthdaysObject).forEach(([userMentionString, birthday]) => {
+      if (new Date(birthday).setHours(0, 0, 0, 0) === todayWithoutTime) {
+        const channel = client.channels.cache.get("935746352502173777");
+        channel.send(`Happy birthday ${userMentionString}!!!!`);
+      }
+    });
+  });
+
   const player = createAudioPlayer();
 
   player.on(AudioPlayerStatus.Idle, () => {
@@ -155,6 +172,32 @@ let selectedVoice = "en-US-News-N";
       }
     }
   });
+
+  if (interaction.commandName === "setbirthday") {
+    const user = interaction.options.getUser("user");
+    const userMentionString = user.toString();
+    const dateString = interaction.options.getString("date");
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) {
+      await interaction.editReply("Invalid date");
+      return;
+    }
+
+    try {
+      const jsonString = await readFile("./birthays.json", {
+        encoding: "utf-8",
+      });
+      const birthdaysObject = JSON.parse(jsonString);
+      const newBirthdaysObject = {
+        ...birthdaysObject,
+        [userMentionString]: date.toISOString(),
+      };
+      await writeFile("./birthdays.json", JSON.stringify(newBirthdaysObject));
+    } catch (e) {
+      await interaction.editReply("There was an error: " + e);
+    }
+  }
 
   client.on(Events.MessageCreate, async (message) => {
     if (!message.guildId) return;

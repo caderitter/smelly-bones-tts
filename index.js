@@ -45,7 +45,7 @@ let selectedVoice = 'en-US-News-N';
     ],
   });
 
-  scheduleJob('* 10 * * *', async () => {
+  scheduleJob('0 10 * * *', async () => {
     const jsonString = await readFile('./birthdays.json', {
       encoding: 'utf-8',
     });
@@ -178,6 +178,7 @@ let selectedVoice = 'en-US-News-N';
     }
 
     if (interaction.commandName === 'setbirthday') {
+      await interaction.deferReply();
       const user = interaction.options.getUser('user');
       const userMentionString = user.toString();
 
@@ -189,8 +190,6 @@ let selectedVoice = 'en-US-News-N';
         );
         return;
       }
-
-      await interaction.deferReply();
 
       try {
         const jsonString = await readFile('./birthdays.json', {

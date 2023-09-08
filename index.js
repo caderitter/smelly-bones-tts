@@ -45,14 +45,20 @@ let selectedVoice = "en-US-News-N";
     ],
   });
 
-  scheduleJob("0 10 * * *", async () => {
-    const jsonString = await readFile("./birthays.json", {
+  scheduleJob("* * * * *", async () => {
+    const jsonString = await readFile("./birthdays.json", {
       encoding: "utf-8",
     });
     const birthdaysObject = JSON.parse(jsonString);
-    const todayWithoutTime = new Date().setHours(0, 0, 0, 0);
+    const today = new Date();
+    const day = today.getDate().toString();
+    const month = today.getMonth().toString();
+
+
     Object.entries(birthdaysObject).forEach(([userMentionString, birthday]) => {
-      if (new Date(birthday).setHours(0, 0, 0, 0) === todayWithoutTime) {
+      console.log(birthday, day, month);
+      const [storedMonth, storedDay] = birthday.split('/');
+      if (storedDay === day && storedMonth === month) {
         const channel = client.channels.cache.get("935746352502173777");
         channel.send(`Happy birthday ${userMentionString}!!!!`);
       }
@@ -171,34 +177,34 @@ let selectedVoice = "en-US-News-N";
         });
       }
     }
+
+    if (interaction.commandName === "setbirthday") {
+      const user = interaction.options.getUser("user");
+      const userMentionString = user.toString();
+
+      const dateString = interaction.options.getString("date");
+      const dateRegex = /^(1[0-2]|[1-9])\/(3[01]|[12][0-9]|[1-9])$/;
+      if (!dateRegex.match(dateString)) {
+        await interaction.editReply("That date is not in valid MM/DD format. Remember to not include leading zeros.");
+        return;
+      }
+
+      try {
+        const jsonString = await readFile("./birthdays.json", {
+          encoding: "utf-8",
+        });
+        const birthdaysObject = JSON.parse(jsonString);
+        const newBirthdaysObject = {
+          ...birthdaysObject,
+          [userMentionString]: dateString,
+        };
+        await writeFile("./birthdays.json", JSON.stringify(newBirthdaysObject));
+        await interaction.editReply(`✅ added ${user}'s birthday`);
+      } catch (e) {
+        await interaction.editReply("There was an error: " + e);
+      }
+    }
   });
-
-  if (interaction.commandName === "setbirthday") {
-    const user = interaction.options.getUser("user");
-    const userMentionString = user.toString();
-    const dateString = interaction.options.getString("date");
-    const date = new Date(dateString);
-
-    if (isNaN(date.getTime())) {
-      await interaction.editReply("Invalid date");
-      return;
-    }
-
-    try {
-      const jsonString = await readFile("./birthays.json", {
-        encoding: "utf-8",
-      });
-      const birthdaysObject = JSON.parse(jsonString);
-      const newBirthdaysObject = {
-        ...birthdaysObject,
-        [userMentionString]: date.toISOString(),
-      };
-      await writeFile("./birthdays.json", JSON.stringify(newBirthdaysObject));
-      await interaction.editReply(`✅ added ${userMentionString}'s birthday`);
-    } catch (e) {
-      await interaction.editReply("There was an error: " + e);
-    }
-  }
 
   client.on(Events.MessageCreate, async (message) => {
     if (!message.guildId) return;

@@ -15,7 +15,7 @@ export default [
     description: "sets the selected voice of the bot",
   },
   new SlashCommandBuilder()
-    .setName("birthdays")
+    .setName("setbirthday")
     .setDescription("allows you to set a user's birthay")
     .addUserOption((option) =>
       option
@@ -26,7 +26,7 @@ export default [
     .addStringOption((option) =>
       option
         .setName("date")
-        .setDescription("the birthday date")
+        .setDescription("the birthday date in format MM/DD without leading zeros")
         .setRequired(true)
-    ),
+    ).toJSON(),
 ];

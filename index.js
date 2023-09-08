@@ -45,7 +45,7 @@ let selectedVoice = 'en-US-News-N';
     ],
   });
 
-  scheduleJob('* * * * *', async () => {
+  scheduleJob('* 10 * * *', async () => {
     const jsonString = await readFile('./birthdays.json', {
       encoding: 'utf-8',
     });

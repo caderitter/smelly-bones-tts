@@ -55,7 +55,6 @@ let selectedVoice = 'en-US-News-N';
     const month = today.getMonth().toString();
 
     Object.entries(birthdaysObject).forEach(([userMentionString, birthday]) => {
-      console.log(birthday, day, month);
       const [storedMonth, storedDay] = birthday.split('/');
       if (storedDay === day && storedMonth === month) {
         const channel = client.channels.cache.get('935746352502173777');
@@ -81,7 +80,6 @@ let selectedVoice = 'en-US-News-N';
 
   client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isChatInputCommand()) return;
-    if (interaction.channel.name !== 'no-mic') return;
     if (interaction.commandName === 'starttts') {
       await interaction.deferReply();
       if (!interaction.member.voice.channel) {
@@ -178,14 +176,13 @@ let selectedVoice = 'en-US-News-N';
     }
 
     if (interaction.commandName === 'setbirthday') {
-      await interaction.deferReply();
       const user = interaction.options.getUser('user');
       const userMentionString = user.toString();
 
       const dateString = interaction.options.getString('date');
       const dateRegex = /^(1[0-2]|[1-9])\/(3[01]|[12][0-9]|[1-9])$/;
       if (!dateString.match(dateRegex)) {
-        await interaction.editReply(
+        await interaction.reply(
           'That date is not in valid MM/DD format. Remember to not include leading zeros.'
         );
         return;
@@ -201,9 +198,9 @@ let selectedVoice = 'en-US-News-N';
           [userMentionString]: dateString,
         };
         await writeFile('./birthdays.json', JSON.stringify(newBirthdaysObject));
-        await interaction.editReply(`✅ added ${user}'s birthday`);
+        await interaction.reply(`✅ added ${user}'s birthday`);
       } catch (e) {
-        await interaction.editReply('There was an error: ' + e);
+        await interaction.reply('There was an error: ' + e);
       }
     }
   });

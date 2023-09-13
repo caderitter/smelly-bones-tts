@@ -29,4 +29,8 @@ export default [
         .setDescription("the birthday date in format MM/DD without leading zeros")
         .setRequired(true)
     ).toJSON(),
+  {
+    name: "listbirthdays",
+    description: "list all the currently stored birthdays",
+  },
 ];

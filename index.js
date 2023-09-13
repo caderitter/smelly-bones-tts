@@ -203,6 +203,32 @@ let selectedVoice = 'en-US-News-N';
         await interaction.reply('There was an error: ' + e);
       }
     }
+    
+    if (interaction.commandName === 'listbirthdays') {
+      try {
+        const jsonString = await readFile('./birthdays.json', { 
+	  encoding: 'utf-8',
+	});
+	const birthdaysObject = JSON.parse(jsonString);
+	const birthdaysString = Object.entries(birthdaysObject).sort((a, b) => {
+	  const [, firstDateString] = a;
+	  const [, secondDateString] = b;
+	  const firstDate = new Date(firstDateString + '/2023');
+	  const secondDate = new Date(secondDateString + '/2023');
+	  if (firstDate < secondDate) return -1;
+	  if (firstDate > secondDate) return 1;
+	  if (firstDate === secondDate) return 0;
+	}).reduce((acc, cur) => {
+          const [userMentionString, birthday] = cur;
+	  const line = `${userMentionString} - ${birthday}\n`;
+	  acc += line;
+	  return acc;
+	}, '');
+	await interaction.reply(birthdaysString);
+      } catch (e) {
+        await interaction.reply('There was an error: ' + e);
+      }
+    }
   });
 
   client.on(Events.MessageCreate, async message => {

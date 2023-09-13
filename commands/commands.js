@@ -21,14 +21,17 @@ export default [
       option
         .setName("user")
         .setDescription("the user to set the birthday of")
-        .setRequired(true)
+        .setRequired(true),
     )
     .addStringOption((option) =>
       option
         .setName("date")
-        .setDescription("the birthday date in format MM/DD without leading zeros")
-        .setRequired(true)
-    ).toJSON(),
+        .setDescription(
+          "the birthday date in format MM/DD without leading zeros",
+        )
+        .setRequired(true),
+    )
+    .toJSON(),
   {
     name: "listbirthdays",
     description: "list all the currently stored birthdays",

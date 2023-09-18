@@ -52,11 +52,13 @@ let selectedVoice = "en-US-News-N";
     const birthdaysObject = JSON.parse(jsonString);
     const today = new Date();
     const day = today.getDate().toString();
-    const month = today.getMonth().toString();
+    const month = (today.getMonth() + 1).toString();
 
     Object.entries(birthdaysObject).forEach(([userMentionString, birthday]) => {
       const [storedMonth, storedDay] = birthday.split("/");
+      console.log(storedMonth, storedDay, month, day);
       if (storedDay === day && storedMonth === month) {
+	console.log('birthday');
         const channel = client.channels.cache.get("935746352502173777");
         channel.send(`Happy birthday ${userMentionString}!!!!`);
       }

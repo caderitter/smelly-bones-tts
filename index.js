@@ -64,6 +64,11 @@ let voiceSelections = {};
       }
     });
   });
+  
+  const voicesJson = await readFile("./voices.json", {
+    encoding: "utf-8",
+  });
+  voiceSelections = JSON.parse(voicesJson);
 
   const player = createAudioPlayer();
 

@@ -276,11 +276,10 @@ let voiceSelections = {};
 
     if (!contentWithNoUrls) return;
 
-    const text = `${username} said ${contentWithNoUrls}`;
     const selectedVoice = voiceSelections[message.member.id];
     const voice = selectedVoice ? selectedVoice : defaultVoice;
     try {
-      const resource = await synthesize(text, voice);
+      const resource = await synthesize(contentWithNoUrls, voice);
       if (!playing) {
         player.play(resource);
       } else {

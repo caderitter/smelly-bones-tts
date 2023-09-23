@@ -21,12 +21,14 @@ import { ComponentType } from "discord.js";
 import { scheduleJob } from "node-schedule";
 import { readFile, writeFile } from "node:fs/promises";
 
+const defaultVoice = "en-US-News-N";
+
 let listening = false;
 let channelName;
 let subscription;
 let queue = [];
 let playing = false;
-let selectedVoice = "en-US-News-N";
+let voiceSelections = {};
 
 (async () => {
   // register slash commands
@@ -56,14 +58,17 @@ let selectedVoice = "en-US-News-N";
 
     Object.entries(birthdaysObject).forEach(([userMentionString, birthday]) => {
       const [storedMonth, storedDay] = birthday.split("/");
-      console.log(storedMonth, storedDay, month, day);
       if (storedDay === day && storedMonth === month) {
-	console.log('birthday');
         const channel = client.channels.cache.get("935746352502173777");
-        channel.send(`Happy birthday ${userMentionString}!!!!`);
+        channel.send(`Happy birthday ${userMentionString}! 🎂🎉`);
       }
     });
   });
+  
+  const voicesJson = await readFile("./voices.json", {
+    encoding: "utf-8",
+  });
+  voiceSelections = JSON.parse(voicesJson);
 
   const player = createAudioPlayer();
 
@@ -164,9 +169,20 @@ let selectedVoice = "en-US-News-N";
           time: 60_000,
           componentType: ComponentType.StringSelect,
         });
-        selectedVoice = selection.values[0];
+
+        const selectedVoice = selection.values[0];
+        const jsonString = await readFile("./voices.json", {
+          encoding: "utf-8",
+        });
+        const voicesObject = JSON.parse(jsonString);
+        voiceSelections = {
+          ...voicesObject,
+          [interaction.user.id]: selectedVoice
+        };
+        await writeFile("./voices.json", JSON.stringify(voiceSelections));
+        
         await selection.update({
-          content: `✅ Voice changed to ${selectedVoice}`,
+          content: `✅ Your voice was changed to ${selectedVoice}`,
           components: [],
         });
       } catch (e) {
@@ -260,9 +276,10 @@ let selectedVoice = "en-US-News-N";
 
     if (!contentWithNoUrls) return;
 
-    const text = `${username} said ${contentWithNoUrls}`;
+    const selectedVoice = voiceSelections[message.member.id];
+    const voice = selectedVoice ? selectedVoice : defaultVoice;
     try {
-      const resource = await synthesize(text, selectedVoice);
+      const resource = await synthesize(contentWithNoUrls, voice);
       if (!playing) {
         player.play(resource);
       } else {

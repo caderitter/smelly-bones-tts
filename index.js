@@ -258,7 +258,7 @@ let voiceSelections = {};
     if (!message.member.voice.channel) return;
     if (message.member.voice.channel.name !== channelName) return;
     if (message.member.id === config.clientId) return;
-    if (message.content.length > 100) {
+    if (message.content.length > 200 && message.member.id !== '179336900983652352') {
       await message.reply("that message is too long");
       return;
     }

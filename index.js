@@ -22,9 +22,9 @@ import { scheduleJob } from "node-schedule";
 import { readFile, writeFile } from "node:fs/promises";
 
 const DEFAULT_VOICE = "en-US-News-N";
-const GUILD_ID = "449063064029888512";
-const NO_MIC_TEXT_CHANNEL_ID = "1030418879152922654";
-const BIRTHDAY_TEXT_CHANNEL_ID = "935746352502173777";
+const GUILD_ID = config.guildId;
+const NO_MIC_TEXT_CHANNEL_ID = config.noMicTextChannelId;
+const BIRTHDAY_TEXT_CHANNEL_ID = config.birthdayTextChannelId;
 
 let listening = false;
 let channelId;

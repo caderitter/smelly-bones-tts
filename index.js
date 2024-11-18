@@ -372,7 +372,7 @@ let timeout;
     if (!message.member.voice.channel) return;
     if (message.member.voice.channel.id !== channelId) return;
     if (message.member.id === config.clientId) return;
-    if (message.content.length > 100) {
+    if (message.content.length > 200) {
       await message.reply("❌ that message is too long");
       return;
     }

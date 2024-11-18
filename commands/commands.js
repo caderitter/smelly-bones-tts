@@ -21,19 +21,43 @@ export default [
       option
         .setName("user")
         .setDescription("the user to set the birthday of")
-        .setRequired(true),
+        .setRequired(true)
     )
     .addStringOption((option) =>
       option
         .setName("date")
         .setDescription(
-          "the birthday date in format MM/DD without leading zeros",
+          "the birthday date in format MM/DD without leading zeros"
         )
-        .setRequired(true),
+        .setRequired(true)
     )
     .toJSON(),
   {
     name: "listbirthdays",
     description: "list all the currently stored birthdays",
+  },
+  new SlashCommandBuilder()
+    .setName("addbanner")
+    .setDescription("adds a banner and sets the current banner to it")
+    .addStringOption((option) =>
+      option
+        .setName("name")
+        .setDescription("the name of the banner")
+        .setRequired(true)
+    )
+    .addAttachmentOption((option) =>
+      option
+        .setName("banner")
+        .setDescription("the banner to add")
+        .setRequired(true)
+    )
+    .toJSON(),
+  {
+    name: "listbanners",
+    description: "lists all the currently stored banners",
+  },
+  {
+    name: "setbanner",
+    description: "sets a banner for the server",
   },
 ];

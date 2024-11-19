@@ -75,7 +75,7 @@ let timeout;
     );
     currentBanner = bannerNames[Math.floor(Math.random() * bannerNames.length)];
     const guild = client.guilds.cache.get(GUILD_ID);
-    await guild.setBanner(currentBanner);
+    await guild.setBanner(banners[currentBanner]);
   });
 
   const voicesJson = await readFile("./voices.json", {

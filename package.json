@@ -12,7 +12,7 @@
   "type": "module",
   "dependencies": {
     "@discordjs/voice": "^0.16.0",
-    "@google-cloud/text-to-speech": "^4.0.4",
+    "@google-cloud/text-to-speech": "^5.4.0",
     "bufferutil": "^4.0.7",
     "discord.js": "^14.11.0",
     "erlpack": "github:discord/erlpack",

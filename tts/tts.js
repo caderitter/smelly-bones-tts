@@ -18,6 +18,6 @@ export const synthesize = async (text, voiceName) => {
 };
 
 export const listVoices = async () => {
-  const voicesResponse = await client.listVoices({ languageCode: "en" });
+  const voicesResponse = await client.listVoices({ languageCode: "en-US" });
   return voicesResponse[0].voices;
 };

@@ -97,6 +97,9 @@ let timeout;
     listening = false;
     playing = false;
     channelId = null;
+    if (timeout) {
+      clearTimeout(timeout);
+    }
     timeout = null;
   };
 
@@ -107,6 +110,9 @@ let timeout;
       return;
     }
     playing = false;
+    if (timeout) {
+      clearTimeout(timeout);
+    }
     timeout = setTimeout(() => {
       let connection = getVoiceConnection(GUILD_ID);
       if (connection) {

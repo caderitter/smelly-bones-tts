@@ -332,7 +332,7 @@ let timeout;
         const selectedBanner = selection.values[0];
 
         const guild = client.guilds.cache.get(GUILD_ID);
-        await guild.setBanner(banners[selectedBanner]);
+        await guild.setBanner(bannerPath(selectedBanner));
 
         await selection.update({
           content: `✅ Banner changed to ${selectedBanner}`,

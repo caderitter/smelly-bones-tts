@@ -19,6 +19,7 @@
     "ffmpeg-static": "^5.1.0",
     "libsodium-wrappers": "^0.7.10",
     "node-schedule": "^2.1.1",
+    "sharp": "^0.33.5",
     "utf-8-validate": "^5.0.10",
     "zlib-sync": "^0.1.7"
   }

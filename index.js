@@ -19,12 +19,17 @@ import registerCommands from "./commands/registerCommands.js";
 import { listVoices, synthesize } from "./tts/tts.js";
 import { ComponentType } from "discord.js";
 import { scheduleJob } from "node-schedule";
-import { readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
+import sharp from "sharp";
 
 const DEFAULT_VOICE = "en-US-News-N";
 const GUILD_ID = config.guildId;
 const NO_MIC_TEXT_CHANNEL_ID = config.noMicTextChannelId;
 const BIRTHDAY_TEXT_CHANNEL_ID = config.birthdayTextChannelId;
+const BANNERS_PATH = "./banners";
+const BANNERS_FORMAT = "jpeg";
+
+const bannerPath = (name) => `${BANNERS_PATH}/${name}.${BANNERS_FORMAT}`;
 
 let listening = false;
 let channelId;
@@ -32,7 +37,7 @@ let subscription;
 let queue = [];
 let playing = false;
 let voiceSelections = {};
-let banners = {};
+let banners = [];
 let currentBanner;
 let timeout;
 
@@ -54,10 +59,7 @@ let timeout;
   });
 
   scheduleJob("0 10 * * *", async () => {
-    const jsonString = await readFile("./birthdays.json", {
-      encoding: "utf-8",
-    });
-    const birthdaysObject = JSON.parse(jsonString);
+    const birthdaysObject = await readAndParseJson("./birthdays.json");
     const today = new Date();
     const day = today.getDate().toString();
     const month = (today.getMonth() + 1).toString();
@@ -70,23 +72,15 @@ let timeout;
       }
     });
 
-    const bannerNames = Object.keys(banners).filter(
-      (name) => name !== currentBanner
-    );
+    const bannerNames = banners.filter((name) => name !== currentBanner);
     currentBanner = bannerNames[Math.floor(Math.random() * bannerNames.length)];
     const guild = client.guilds.cache.get(GUILD_ID);
-    await guild.setBanner(banners[currentBanner]);
+    await guild.setBanner(bannerPath(currentBanner));
   });
 
-  const voicesJson = await readFile("./voices.json", {
-    encoding: "utf-8",
-  });
-  voiceSelections = JSON.parse(voicesJson);
+  voiceSelections = await readAndParseJson("./voices.json");
 
-  const bannersJson = await readFile("./banners.json", {
-    encoding: "utf-8",
-  });
-  banners = JSON.parse(bannersJson);
+  await setBanners();
 
   const player = createAudioPlayer();
 
@@ -212,10 +206,7 @@ let timeout;
         });
 
         const selectedVoice = selection.values[0];
-        const jsonString = await readFile("./voices.json", {
-          encoding: "utf-8",
-        });
-        const voicesObject = JSON.parse(jsonString);
+        const voicesObject = await readAndParseJson("./voices.json");
         voiceSelections = {
           ...voicesObject,
           [interaction.user.id]: selectedVoice,
@@ -248,10 +239,7 @@ let timeout;
       }
 
       try {
-        const jsonString = await readFile("./birthdays.json", {
-          encoding: "utf-8",
-        });
-        const birthdaysObject = JSON.parse(jsonString);
+        const birthdaysObject = await readAndParseJson("./birthdays.json");
         const newBirthdaysObject = {
           ...birthdaysObject,
           [userMentionString]: dateString,
@@ -265,10 +253,7 @@ let timeout;
 
     if (interaction.commandName === "listbirthdays") {
       try {
-        const jsonString = await readFile("./birthdays.json", {
-          encoding: "utf-8",
-        });
-        const birthdaysObject = JSON.parse(jsonString);
+        const birthdaysObject = await readAndParseJson("./birthdays.json");
         const birthdaysString = Object.entries(birthdaysObject)
           .sort((a, b) => {
             const [, firstDateString] = a;
@@ -301,21 +286,10 @@ let timeout;
       }
 
       try {
-        const jsonString = await readFile("./banners.json", {
-          encoding: "utf-8",
-        });
-        const oldBanners = JSON.parse(jsonString);
-        // sadly, since discord makes attachment URLS temporary, we have to set the banner
-        // immediately and then store that URL, which is permanent.
-        await client.guilds.cache.get(GUILD_ID).setBanner(banner.url);
-        const permanentUrl = client.guilds.cache.get(GUILD_ID).bannerURL();
-        const newBanners = {
-          ...oldBanners,
-          [name]: `${permanentUrl}?size=480`,
-        };
-        banners = newBanners;
-        await writeFile("./banners.json", JSON.stringify(banners));
-        await interaction.reply(`✅ Added and set new banner ${name}`);
+        const path = bannerPath(name);
+        await downloadImageToPath(path, banner.url);
+        await setBanners();
+        await interaction.reply(`✅ Added new banner ${name}`);
       } catch (e) {
         await interaction.reply("❌ There was an error: " + e);
       }
@@ -323,9 +297,8 @@ let timeout;
 
     if (interaction.commandName === "listbanners") {
       try {
-        const bannerNames = Object.entries(banners);
-        const bannerString = bannerNames.reduce((acc, [name, url]) => {
-          acc += `${name} - ${url}\n`;
+        const bannerString = banners.reduce((acc, name) => {
+          acc += `${name}\n`;
           return acc;
         }, "");
         await interaction.reply(bannerString);
@@ -336,7 +309,7 @@ let timeout;
 
     if (interaction.commandName === "setbanner") {
       await interaction.deferReply();
-      const options = Object.keys(banners).map((banner) =>
+      const options = banners.map((banner) =>
         new StringSelectMenuOptionBuilder().setLabel(banner).setValue(banner)
       );
       const selectMenu = new StringSelectMenuBuilder()
@@ -443,4 +416,24 @@ function chunkArray(arr, chunkSize) {
     res.push(chunk);
   }
   return res;
+}
+
+async function downloadImageToPath(path, url) {
+  const res = await fetch(url);
+  const buffer = await res.arrayBuffer();
+  await sharp(buffer).toFormat(BANNERS_FORMAT).toFile(path);
+}
+
+async function setBanners() {
+  const bannerFilenames = await readdir(BANNERS_PATH);
+  banners = bannerFilenames.map((filename) =>
+    filename.replace(`.${BANNERS_FORMAT}`, "")
+  );
+}
+
+async function readAndParseJson(path) {
+  const jsonString = await readFile(path, {
+    encoding: "utf-8",
+  });
+  return JSON.parse(jsonString);
 }

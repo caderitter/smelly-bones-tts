@@ -21,6 +21,8 @@ import { ComponentType } from "discord.js";
 import { scheduleJob } from "node-schedule";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
+import { format } from "date-fns";
+import { TZDate } from "@date-fns/tz";
 
 const DEFAULT_VOICE = "en-US-News-N";
 const GUILD_ID = config.guildId;
@@ -58,7 +60,7 @@ let timeout;
     ],
   });
 
-  scheduleJob("0 10 * * *", async () => {
+  scheduleJob("0 13 * * *", async () => {
     const birthdaysObject = await readAndParseJson("./birthdays.json");
     const today = new Date();
     const day = today.getDate().toString();
@@ -329,18 +331,22 @@ let timeout;
           componentType: ComponentType.StringSelect,
         });
 
-        const selectedBanner = selection.values[0];
+        currentBanner = selection.values[0];
 
         const guild = client.guilds.cache.get(GUILD_ID);
-        await guild.setBanner(bannerPath(selectedBanner));
+        await guild.setBanner(bannerPath(currentBanner));
 
         await selection.update({
-          content: `✅ Banner changed to ${selectedBanner}`,
+          content: `✅ Banner changed to ${currentBanner}`,
           components: [],
         });
       } catch (e) {
         console.error(e);
       }
+    }
+    
+    if (interaction.commandName === "jacktime") {
+      await interaction.reply(`Tokyo time: ${format(TZDate.tz("Asia/Tokyo"), "iii h:mm b")}`);
     }
   });
 

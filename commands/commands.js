@@ -60,4 +60,8 @@ export default [
     name: "setbanner",
     description: "sets a banner for the server",
   },
+  {
+    name: "jacktime",
+    description: "what time is it in Tokyo?",
+  },
 ];
